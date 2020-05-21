@@ -1,0 +1,110 @@
+---
+title: "suicide_rate"
+author: "Paul Eudeline"
+date: "21/05/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r import, echo=FALSE}
+# general data manipulation
+library(tidyverse)
+
+# clean visualisation
+library(kableExtra)
+library(plotly)
+```
+
+## Load the dataset
+
+Load the dataset with the `read_csv` function.
+
+```{r}
+suicide_data <- read_csv("master.csv")
+```
+
+## Quick look at the file strucuture and content
+
+As a first step let’s have a quick look of the dataset with the `summary` function and then an example of 10 random rows.
+
+```{r summary}
+suicide_data%>%
+  summary()
+```
+
+
+```{r}
+suicide_data%>%
+  sample_n(10)%>%
+  kable()%>% 
+  kable_styling()
+```
+
+Look if there is any missing values.
+
+```{r}
+suicide_data%>%
+  is.na()%>%
+  colSums()
+
+```
+
+## Visual overview
+
+We will start our exploration by looking at the worldwide suicide rate (maybe use highcharter for nicer interactive plot).
+
+First lets take a look at the worldwide suicide rates.
+
+```{r}
+custom_theme <- theme_light()
+  
+```
+
+
+```{r}
+# Get global suicides
+ww_srate <- suicide_data%>%
+  select(year, suicides_no, population)%>%
+  group_by(year)%>%
+  summarise(suicide_capita = round(sum(suicides_no) / sum(population) * 100000, 2))
+
+# Plot
+ww_line_plot <- ww_srate%>%
+  ggplot(aes(year, suicide_capita)) +
+  geom_line() +
+  geom_hline(yintercept = mean(ww_srate$suicide_capita), size=0.5, linetype="dotted") +
+  geom_point(aes(color=suicide_capita)) +
+  labs(title="Worldwide suicide by year", x="Year", y="Suicides per 100k people", subtitle = "1985 - 2016") +
+  scale_color_gradient(low="#192a56", high="#fbc531") +
+  custom_theme +
+  theme(legend.position = "none")
+
+text_info <- paste("Suicides:", ww_srate$suicide_capita, "\nYear:", ww_srate$year)
+
+ggplotly(ww_line_plot)%>%
+  style(text=text_info)
+```
+
+Now worldwide suicide rate by gender.
+
+```{r}
+ww_srate_gender <- suicide_data%>%
+  select(year, sex, suicides_no, population)%>%
+  group_by(year, sex)%>%
+  summarise(suicide_capita = round(sum(suicides_no) / sum(population) * 100000, 2))
+
+# Plot
+ww_line_plot <- ww_srate_gender%>%
+  ggplot(aes(year, suicide_capita, color=sex, shape=sex)) +
+  geom_line() +
+  geom_point() +
+  labs(title="Worldwide suicide by gender", x="Year", y="Suicides per 100k people", subtitle = "1985 - 2016") +
+  custom_theme +
+  theme(legend.position = "top")
+
+ggplotly(ww_line_plot)
+```
+
